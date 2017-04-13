@@ -102,6 +102,14 @@ func main() {
 	mux.HandleFunc("/verify", verifyHandler)
 	mux.HandleFunc("/redirect307/", redirect307Handler)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(strings.ToLower(r.URL.Path), "copy-headers") {
+			for k, vs := range r.Header() {
+				for k, v := range vs {
+					w.Header.Add("X-Got-Header", fmt.Sprintf("%s: %s", k, v))
+				}
+			}
+		}
+
 		id, ok := reqId(w)
 		if !ok {
 			return

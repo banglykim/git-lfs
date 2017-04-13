@@ -65,6 +65,7 @@ func joinURL(prefix, suffix string) string {
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
+	req.Header = c.setExtraHeaders(req)
 	req.Header.Set("User-Agent", UserAgent)
 
 	res, err := c.doWithRedirects(c.httpClient(req.Host), req, nil)
@@ -73,6 +74,37 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	}
 
 	return res, c.handleResponse(res)
+}
+
+func (c *Client) setExtraHeaders(req *http.Request) http.Header {
+	var copy http.Header = make(http.Header)
+	for k, vs := range req.Header {
+		copy[k] = vs
+	}
+
+	for k, vs := range c.extraHeaders(req.URL) {
+		for _, v := range vs {
+			copy[k] = append(copy[k], v)
+		}
+	}
+	return copy
+}
+
+func (c *Client) extraHeaders(u *url.URL) map[string][]string {
+	hdrs := uc.GetAll("http", u.String(), "extraHeader")
+	m := make(map[string][]string, len(hdrs))
+
+	for _, hdr := range hdrs {
+		parts := strings.Split(hdrs, ": ", 2)
+		if len(parts) < 2 {
+			continue
+		}
+
+		k, v := parts[0], parts[1]
+
+		m[k] = append(m[k], v)
+	}
+	return m
 }
 
 func (c *Client) doWithRedirects(cli *http.Client, req *http.Request, via []*http.Request) (*http.Response, error) {
